@@ -1970,8 +1970,10 @@ int msm_isp_drop_frame(struct vfe_device *vfe_dev,
 				__func__, done_buf->bufq_handle);
 			return -EINVAL;
 		}
-		sof_info->reg_update_fail_mask_ext |=
-			(bufq->bufq_handle & 0xFF);
+
+		sof_info->reg_update_fail_mask |=
+			1 << (bufq->bufq_handle & 0xF);
+
 	}
 	spin_unlock_irqrestore(&stream_info->lock, flags);
 
