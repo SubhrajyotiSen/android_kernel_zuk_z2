@@ -39,6 +39,8 @@
 
 extern bool is_daemon_status;
 
+extern bool is_daemon_status;
+
 struct msm_video_device {
 	struct video_device *vdev;
 	atomic_t opened;
@@ -114,6 +116,7 @@ static inline bool msm_is_daemon_present(void)
 	return is_daemon_status;
 }
 
+void msm_pm_qos_update_request(int val);
 int msm_post_event(struct v4l2_event *event, int timeout);
 int  msm_create_session(unsigned int session, struct video_device *vdev);
 int msm_destroy_session(unsigned int session_id);
