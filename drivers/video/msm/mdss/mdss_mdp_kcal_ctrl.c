@@ -562,7 +562,7 @@ static int kcal_ctrl_probe(struct platform_device *pdev)
 	lut_data->invert = 0x0;
 	lut_data->hue = 0x0;
 #ifdef CONFIG_PRODUCT_Z2_PLUS
-	lut_data->sat = 0x113;
+	lut_data->sat = 0x109;
 #else
 	lut_data->sat = DEF_PA;
 #endif
