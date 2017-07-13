@@ -1,18 +1,40 @@
 #!/bin/bash
-cd ..
-rm -rf modules
-export CONFIG_FILE="msm-perf_defconfig"
+kernel_version="Beta-1"
+kernel_name="Heliox"
+device_name="Z2_Plus"
+zip_name="$kernel_name-$device_name-$kernel_version.zip"
+
+# ccache
+export USE_CCACHE=1
+export CCACHE_DIR=/home/ccache/subhrajyoti
+
+export HOME="/home/subhrajyoti"
+export CONFIG_FILE="heliox_z2_plus_defconfig"
 export ARCH="arm64"
-export CROSS_COMPILE="aarch64-linux-android-"
-export TOOL_CHAIN_PATH="${HOME}/caf/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/"
+export KBUILD_BUILD_USER="Subhrajyoti"
+export KBUILD_BUILD_HOST="Beast"
+export TOOLCHAIN_PATH="${HOME}/aarch64-linux-gnu-linaro-7.x"
+export CROSS_COMPILE=$TOOLCHAIN_PATH/bin/aarch64-linux-gnu-
 export CONFIG_ABS_PATH="arch/${ARCH}/configs/${CONFIG_FILE}"
-export PATH=$PATH:${TOOL_CHAIN_PATH}
-export objdir="${HOME}/kernel/obj"
-export sourcedir="${HOME}/kernel/msm8996"
-cd $sourcedir
+export objdir="$HOME/kernel/obj"
+export sourcedir="$HOME/kernel/zuk"
+export anykernel="$HOME/kernel/zuk/anykernel"
 compile() {
-  make O=$objdir ARCH=arm64 CROSS_COMPILE=${TOOL_CHAIN_PATH}/${CROSS_COMPILE}  $CONFIG_FILE -j4 
-  make O=$objdir -j6
+  make O=$objdir  $CONFIG_FILE -j4
+  make O=$objdir -j4
+}
+clean() {
+  make O=$objdir CROSS_COMPILE=${CROSS_COMPILE}  $CONFIG_FILE -j4
+  make O=$objdir mrproper
+  make O=$objdir clean
+}
+module_stock(){
+  rm -rf $anykernel/modules/
+  mkdir $anykernel/modules
+  find $objdir -name '*.ko' -exec cp -av {} $anykernel/modules/ \;
+  # strip modules
+  ${CROSS_COMPILE}strip --strip-unneeded $anykernel/modules/*
+  cp -rf $objdir/arch/$ARCH/boot/Image.gz-dtb $anykernel/zImage
 }
 module(){
   mkdir modules
