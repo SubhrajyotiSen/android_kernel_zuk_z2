@@ -2,7 +2,7 @@
 kernel_version="Beta-1"
 kernel_name="Heliox"
 device_name="Z2_Plus"
-zip_name="$kernel_name-$device_name-$kernel_version.zip"
+zip_name="$kernel_name-$device_name-$kernel_version-$(date +"%Y%m%d")-$(date +"%H%M%S").zip"
 
 # ccache
 export USE_CCACHE=1
