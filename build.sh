@@ -17,7 +17,7 @@ export TOOLCHAIN_PATH="${HOME}/aarch64-linux-gnu-linaro-7.x"
 export CROSS_COMPILE=$TOOLCHAIN_PATH/bin/aarch64-linux-gnu-
 export CONFIG_ABS_PATH="arch/${ARCH}/configs/${CONFIG_FILE}"
 export objdir="$HOME/kernel/obj"
-export sourcedir="$HOME/kernel/zuk"
+export sourcedir="$HOME/kernel/z2"
 export anykernel="$HOME/kernel/zuk/anykernel"
 compile() {
   make O=$objdir  $CONFIG_FILE -j4
@@ -36,21 +36,23 @@ module_stock(){
   ${CROSS_COMPILE}strip --strip-unneeded $anykernel/modules/*
   cp -rf $objdir/arch/$ARCH/boot/Image.gz-dtb $anykernel/zImage
 }
-module(){
-  mkdir modules
-  find . -name '*.ko' -exec cp -av {} modules/ \;
-  # strip modules 
-  ${TOOL_CHAIN_PATH}/${CROSS_COMPILE}strip --strip-unneeded modules/*
-  #mkdir modules/qca_cld
-  #mv modules/wlan.ko modules/qca_cld/qca_cld_wlan.ko
+delete_zip(){
+  cd $anykernel
+  find . -name "*.zip" -type f
+  find . -name "*.zip" -type f -delete
 }
-dtbuild(){
-  cd $sourcedir
-  ./tools/dtbToolCM -2 -o $objdir/arch/arm64/boot/dt.img -s 4096 -p $objdir/scripts/dtc/ $objdir/arch/arm64/boot/dts/
+build_package(){
+  zip -r9 UPDATE-AnyKernel2.zip * -x README UPDATE-AnyKernel2.zip
 }
-compile 
-cd ../
-module
-#dtbuild
-#cp $objdir/arch/arm64/boot/zImage $sourcedir/zImage
-#cp $objdir/arch/arm64/boot/dt.img.lz4 $sourcedir/dt.img
+make_name(){
+  mv UPDATE-AnyKernel2.zip $zip_name
+}
+turn_back(){
+cd $sourcedir
+}
+compile
+module_stock
+delete_zip
+build_package
+make_name
+turn_back
