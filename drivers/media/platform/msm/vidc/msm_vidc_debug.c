@@ -361,20 +361,14 @@ struct dentry *msm_vidc_debugfs_init_inst(struct msm_vidc_inst *inst,
 		goto failed_create_dir;
 	}
 	info = debugfs_create_file("info", S_IRUGO, dir,
-			idata, &inst_info_fops);
+			inst, &inst_info_fops);
 	if (IS_ERR_OR_NULL(info)) {
 		dprintk(VIDC_ERR, "debugfs_create_file: fail\n");
 		goto failed_create_dir;
 	}
 	inst->debug.pdata[FRAME_PROCESSING].sampling = true;
-	return dir;
-
-failed_create_file:
-	debugfs_remove_recursive(dir);
 failed_create_dir:
-	kfree(idata);
-exit:
-	return NULL;
+	return dir;
 }
 
 void msm_vidc_debugfs_update(struct msm_vidc_inst *inst,
