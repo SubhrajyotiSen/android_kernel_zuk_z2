@@ -483,6 +483,8 @@ static void msm_vfe46_process_reg_update(struct vfe_device *vfe_dev,
 
 			switch (i) {
 			case VFE_PIX_0:
+				msm_isp_save_framedrop_values(vfe_dev,
+							VFE_PIX_0);
 				msm_isp_notify(vfe_dev, ISP_EVENT_REG_UPDATE,
 					VFE_PIX_0, ts);
 				if (atomic_read(
@@ -512,7 +514,6 @@ static void msm_vfe46_process_reg_update(struct vfe_device *vfe_dev,
 			}
 			if (vfe_dev->axi_data.stream_update[i])
 				msm_isp_axi_stream_update(vfe_dev, i);
-			msm_isp_save_framedrop_values(vfe_dev, i);
 			if (atomic_read(&vfe_dev->axi_data.axi_cfg_update[i])) {
 				msm_isp_axi_cfg_update(vfe_dev, i);
 				if (atomic_read(
@@ -2149,7 +2150,6 @@ struct msm_vfe_hardware_info vfe46_hw_info = {
 			.get_pingpong_status = msm_vfe46_get_pingpong_status,
 			.update_cgc_override =
 				msm_vfe46_stats_update_cgc_override,
-			.enable_stats_wm = NULL,
 		},
 	},
 	.dmi_reg_offset = 0xACC,

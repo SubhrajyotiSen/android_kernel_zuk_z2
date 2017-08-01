@@ -585,6 +585,7 @@ static int msm_isp_start_fetch_engine(struct vfe_device *vfe_dev,
 	 */
 	vfe_dev->axi_data.src_info[VFE_PIX_0].frame_id =
 		fe_cfg->frame_id;
+
 	return vfe_dev->hw_info->vfe_ops.core_ops.
 		start_fetch_eng(vfe_dev, arg);
 }
@@ -1223,7 +1224,7 @@ static int msm_isp_send_hw_cmd(struct vfe_device *vfe_dev,
 			reg_cfg_cmd->u.rw_info.len) >
 			resource_size(vfe_dev->vfe_mem)) ||
 			(reg_cfg_cmd->u.rw_info.reg_offset & 0x3)) {
-			pr_err_ratelimited("%s:%d regoffset %d len %d res %d\n",
+			pr_err("%s:%d reg_offset %d len %d res %d\n",
 				__func__, __LINE__,
 				reg_cfg_cmd->u.rw_info.reg_offset,
 				reg_cfg_cmd->u.rw_info.len,
@@ -1235,7 +1236,7 @@ static int msm_isp_send_hw_cmd(struct vfe_device *vfe_dev,
 			(UINT_MAX - reg_cfg_cmd->u.rw_info.len)) ||
 			((reg_cfg_cmd->u.rw_info.cmd_data_offset +
 			reg_cfg_cmd->u.rw_info.len) > cmd_len)) {
-			pr_err_ratelimited("%s:%d cmd_data_offset %d len %d cmd_len %d\n",
+			pr_err("%s:%d cmd_data_offset %d len %d cmd_len %d\n",
 				__func__, __LINE__,
 				reg_cfg_cmd->u.rw_info.cmd_data_offset,
 				reg_cfg_cmd->u.rw_info.len, cmd_len);

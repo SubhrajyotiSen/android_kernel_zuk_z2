@@ -273,8 +273,6 @@ struct msm_vfe_stats_ops {
 
 	void (*update_cgc_override)(struct vfe_device *vfe_dev,
 		uint32_t stats_mask, uint8_t enable);
-	void (*enable_stats_wm)(struct vfe_device *vfe_dev,
-		uint32_t stats_mask, uint8_t enable);
 };
 
 struct msm_vfe_ops {
@@ -464,7 +462,6 @@ struct msm_vfe_axi_shared_data {
 struct msm_vfe_stats_hardware_info {
 	uint32_t stats_capability_mask;
 	uint8_t *stats_ping_pong_offset;
-	uint8_t *stats_wm_index;
 	uint8_t num_stats_type;
 	uint8_t num_stats_comp_mask;
 };
@@ -630,6 +627,7 @@ struct master_slave_resource_info {
 
 struct msm_vfe_common_dev_data {
 	spinlock_t common_dev_data_lock;
+	spinlock_t common_dev_axi_lock;
 	struct dual_vfe_resource *dual_vfe_res;
 	struct master_slave_resource_info ms_resource;
 };
@@ -726,6 +724,9 @@ struct vfe_device {
 	/* irq info */
 	uint32_t irq0_mask;
 	uint32_t irq1_mask;
+
+	/* before halt irq info */
+	uint32_t ms_frame_id;
 };
 
 struct vfe_parent_device {
