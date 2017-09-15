@@ -9,7 +9,7 @@ export USE_CCACHE=1
 export CCACHE_DIR=/home/ccache/subhrajyoti
 
 export HOME="/home/subhrajyoti"
-export CONFIG_FILE="n7x-caf_z2_plus_defconfig"
+export CONFIG_FILE="heliox_z2_plus_defconfig"
 export ARCH="arm64"
 export KBUILD_BUILD_USER="Subhrajyoti"
 export KBUILD_BUILD_HOST="Beast"
