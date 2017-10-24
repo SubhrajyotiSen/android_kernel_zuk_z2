@@ -1,4 +1,9 @@
 #!/bin/bash
+
+
+#For Time Calculation
+BUILD_START=$(date +"%s")
+
 kernel_version="Stable"
 kernel_name="Heliox"
 device_name="Z2_Plus"
@@ -13,18 +18,19 @@ export CONFIG_FILE="heliox_z2_plus_defconfig"
 export ARCH="arm64"
 export KBUILD_BUILD_USER="Subhrajyoti"
 export KBUILD_BUILD_HOST="Beast"
-export TOOLCHAIN_PATH="${HOME}/aarch64-linux-gnu-linaro-7.x"
+export TOOLCHAIN_PATH="${HOME}/kernel/toolchain"
 export CROSS_COMPILE=$TOOLCHAIN_PATH/bin/aarch64-linux-gnu-
 export CONFIG_ABS_PATH="arch/${ARCH}/configs/${CONFIG_FILE}"
 export objdir="$HOME/kernel/obj"
 export sourcedir="$HOME/kernel/zuk"
 export anykernel="$HOME/kernel/anykernel"
+
 compile() {
-  make O=$objdir  $CONFIG_FILE -j4
-  make O=$objdir -j4
+  make O=$objdir  $CONFIG_FILE -j12
+  make O=$objdir -j12
 }
 clean() {
-  make O=$objdir CROSS_COMPILE=${CROSS_COMPILE}  $CONFIG_FILE -j4
+  make O=$objdir CROSS_COMPILE=${CROSS_COMPILE}  $CONFIG_FILE -j12
   make O=$objdir mrproper
   make O=$objdir clean
 }
@@ -50,9 +56,14 @@ make_name(){
 turn_back(){
 cd $sourcedir
 }
+
+clean
 compile
 module_stock
 delete_zip
 build_package
 make_name
 turn_back
+BUILD_END=$(date +"%s")
+DIFF=$(($BUILD_END - $BUILD_START))
+echo -e "$blue Build completed in $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds.$nocol"
