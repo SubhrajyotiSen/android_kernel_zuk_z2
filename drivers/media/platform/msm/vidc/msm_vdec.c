@@ -21,6 +21,7 @@
 
 #define MSM_VDEC_DVC_NAME "msm_vdec_8974"
 #define MIN_NUM_OUTPUT_BUFFERS 4
+#define MIN_NUM_OUTPUT_BUFFERS_VP9 6
 #define MIN_NUM_CAPTURE_BUFFERS 6
 #define MIN_NUM_THUMBNAIL_MODE_CAPTURE_BUFFERS 1
 #define MAX_NUM_OUTPUT_BUFFERS VB2_MAX_FRAME
@@ -622,6 +623,11 @@ static u32 get_frame_size_compressed(int plane,
 	return (max_mbs_per_frame * size_per_mb * 3/2)/2;
 }
 
+static u32 get_frame_size_nv12_ubwc_10bit(int plane, u32 height, u32 width)
+{
+	return VENUS_BUFFER_SIZE(COLOR_FMT_NV12_BPP10_UBWC, width, height);
+}
+
 static u32 get_frame_size(struct msm_vidc_inst *inst,
 					const struct msm_vidc_format *fmt,
 					int fmt_type, int plane)
@@ -719,6 +725,14 @@ struct msm_vidc_format vdec_formats[] = {
 		.fourcc = V4L2_PIX_FMT_NV12_UBWC,
 		.num_planes = 2,
 		.get_frame_size = get_frame_size_nv12_ubwc,
+		.type = CAPTURE_PORT,
+	},
+	{
+		.name = "UBWC YCbCr Semiplanar 4:2:0 10bit",
+		.description = "UBWC Y/CbCr 4:2:0 10bit",
+		.fourcc = V4L2_PIX_FMT_NV12_TP10_UBWC,
+		.num_planes = 2,
+		.get_frame_size = get_frame_size_nv12_ubwc_10bit,
 		.type = CAPTURE_PORT,
 	},
 	{
@@ -1504,6 +1518,17 @@ static int msm_vdec_queue_setup(struct vb2_queue *q,
 		if (*num_buffers < MIN_NUM_OUTPUT_BUFFERS ||
 				*num_buffers > MAX_NUM_OUTPUT_BUFFERS)
 			*num_buffers = MIN_NUM_OUTPUT_BUFFERS;
+		/*
+		 * Increase input buffer count to 6 as for some
+		 * vp9 clips which have superframes with more
+		 * than 4 subframes requires more than 4
+		 * reference frames to decode.
+		 */
+		if (inst->fmts[OUTPUT_PORT]->fourcc ==
+				V4L2_PIX_FMT_VP9 &&
+				*num_buffers < MIN_NUM_OUTPUT_BUFFERS_VP9)
+			*num_buffers = MIN_NUM_OUTPUT_BUFFERS_VP9;
+
 		for (i = 0; i < *num_planes; i++) {
 			sizes[i] = get_frame_size(inst,
 					inst->fmts[OUTPUT_PORT], q->type, i);
