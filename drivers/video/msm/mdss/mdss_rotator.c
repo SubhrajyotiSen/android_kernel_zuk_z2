@@ -373,15 +373,6 @@ static bool mdss_rotator_is_work_pending(struct mdss_rot_mgr *mgr,
 	return false;
 }
 
-static void mdss_rotator_install_fence_fd(struct mdss_rot_entry_container *req)
-{
-	int i = 0;
-
-	for (i = 0; i < req->count; i++)
-		sync_fence_install(req->entries[i].output_fence,
-				req->entries[i].output_fence_fd);
-}
-
 static int mdss_rotator_create_fence(struct mdss_rot_entry *entry)
 {
 	int ret = 0, fd;
@@ -420,6 +411,7 @@ static int mdss_rotator_create_fence(struct mdss_rot_entry *entry)
 		goto get_fd_err;
 	}
 
+	sync_fence_install(fence, fd);
 	rot_timeline->next_value++;
 	mutex_unlock(&rot_timeline->lock);
 
@@ -508,12 +500,6 @@ static int mdss_rotator_import_buffer(struct mdp_layer_buffer *buffer,
 		dir = DMA_FROM_DEVICE;
 
 	memset(planes, 0, sizeof(planes));
-
-	if (buffer->plane_count > MAX_PLANES) {
-		pr_err("buffer plane_count exceeds MAX_PLANES limit:%d\n",
-				buffer->plane_count);
-		return -EINVAL;
-	}
 
 	for (i = 0; i < buffer->plane_count; i++) {
 		planes[i].memory_id = buffer->planes[i].fd;
@@ -1048,16 +1034,8 @@ static int mdss_rotator_calc_perf(struct mdss_rot_perf *perf)
 		pr_err("invalid output format\n");
 		return -EINVAL;
 	}
-	if (!config->input.width ||
-		(0xffffffff/config->input.width < config->input.height))
-		return -EINVAL;
 
 	perf->clk_rate = config->input.width * config->input.height;
-
-	if (!perf->clk_rate ||
-		(0xffffffff/perf->clk_rate < config->frame_rate))
-		return -EINVAL;
-
 	perf->clk_rate *= config->frame_rate;
 	/* rotator processes 4 pixels per clock */
 	perf->clk_rate /= 4;
@@ -1126,7 +1104,6 @@ static void mdss_rotator_release_from_work_distribution(
 		bool free_perf = false;
 		u32 wb_idx = entry->queue->hw->wb_id;
 
-		mutex_lock(&mgr->lock);
 		mutex_lock(&entry->perf->work_dis_lock);
 		if (entry->perf->work_distribution[wb_idx])
 			entry->perf->work_distribution[wb_idx]--;
@@ -1150,7 +1127,6 @@ static void mdss_rotator_release_from_work_distribution(
 			mdss_rotator_clk_ctrl(mgr, false);
 			entry->perf = NULL;
 		}
-		mutex_unlock(&mgr->lock);
 	}
 }
 
@@ -2047,6 +2023,7 @@ static int mdss_rotator_close_session(struct mdss_rot_mgr *mgr,
 	list_del_init(&perf->list);
 	mutex_unlock(&perf->work_dis_lock);
 	mutex_unlock(&private->perf_lock);
+	mutex_unlock(&mgr->lock);
 
 	if (offload_release_work)
 		goto done;
@@ -2059,7 +2036,6 @@ static int mdss_rotator_close_session(struct mdss_rot_mgr *mgr,
 done:
 	pr_debug("Closed session id:%u", id);
 	ATRACE_END(__func__);
-	mutex_unlock(&mgr->lock);
 	return 0;
 }
 
@@ -2121,20 +2097,6 @@ struct mdss_rot_entry_container *mdss_rotator_req_init(
 {
 	struct mdss_rot_entry_container *req;
 	int size, i;
-
-	/*
-	 * Check input and output plane_count from each given item
-	 * are within the MAX_PLANES limit
-	 */
-	for (i = 0 ; i < count; i++) {
-		if ((items[i].input.plane_count > MAX_PLANES) ||
-				(items[i].output.plane_count > MAX_PLANES)) {
-			pr_err("Input/Output plane_count exceeds MAX_PLANES limit, input:%d, output:%d\n",
-					items[i].input.plane_count,
-					items[i].output.plane_count);
-			return ERR_PTR(-EINVAL);
-		}
-	}
 
 	size = sizeof(struct mdss_rot_entry_container);
 	size += sizeof(struct mdss_rot_entry) * count;
@@ -2258,7 +2220,6 @@ static int mdss_rotator_handle_request(struct mdss_rot_mgr *mgr,
 		goto handle_request_err1;
 	}
 
-	mdss_rotator_install_fence_fd(req);
 	mdss_rotator_queue_request(mgr, private, req);
 
 	mutex_unlock(&mgr->lock);
@@ -2419,7 +2380,6 @@ static int mdss_rotator_handle_request32(struct mdss_rot_mgr *mgr,
 		goto handle_request32_err1;
 	}
 
-	mdss_rotator_install_fence_fd(req);
 	mdss_rotator_queue_request(mgr, private, req);
 
 	mutex_unlock(&mgr->lock);

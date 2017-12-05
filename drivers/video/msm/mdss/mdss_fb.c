@@ -1868,8 +1868,7 @@ void mdss_fb_update_backlight(struct msm_fb_data_type *mfd)
 
 static int mdss_fb_start_disp_thread(struct msm_fb_data_type *mfd)
 {
-	const unsigned long allowed_cpus = 0x3;
-	int ret;
+	int ret = 0;
 
 	pr_debug("%pS: start display thread fb%d\n",
 		__builtin_return_address(0), mfd->index);
@@ -1878,24 +1877,17 @@ static int mdss_fb_start_disp_thread(struct msm_fb_data_type *mfd)
 	mdss_fb_get_split(mfd);
 
 	atomic_set(&mfd->commits_pending, 0);
-	mfd->disp_thread = kthread_create(__mdss_fb_display_thread,
+	mfd->disp_thread = kthread_run(__mdss_fb_display_thread,
 				mfd, "mdss_fb%d", mfd->index);
 
 	if (IS_ERR(mfd->disp_thread)) {
-		pr_err("ERROR: unable to create display thread %d\n",
+		pr_err("ERROR: unable to start display thread %d\n",
 				mfd->index);
 		ret = PTR_ERR(mfd->disp_thread);
 		mfd->disp_thread = NULL;
-		return ret;
 	}
 
-	/* Restrict the display thread to the power cluster to save power */
-	do_set_cpus_allowed(mfd->disp_thread, to_cpumask(&allowed_cpus));
-	mfd->disp_thread->flags |= PF_NO_SETAFFINITY;
-
-	wake_up_process(mfd->disp_thread);
-
-	return 0;
+	return ret;
 }
 
 static void mdss_fb_stop_disp_thread(struct msm_fb_data_type *mfd)
@@ -3504,7 +3496,7 @@ int mdss_fb_atomic_commit(struct fb_info *info,
 				output_layer = commit_v1->output_layer;
 				if (!output_layer) {
 					pr_err("Output layer is null\n");
-					goto end;
+					return ret;
 				}
 				wb_change = !mdss_fb_is_wb_config_same(mfd,
 						commit_v1->output_layer);
@@ -4624,22 +4616,11 @@ static int mdss_fb_atomic_commit_ioctl(struct fb_info *info,
 	struct mdp_input_layer __user *input_layer_list;
 	struct mdp_output_layer *output_layer = NULL;
 	struct mdp_output_layer __user *output_layer_user;
-	struct msm_fb_data_type *mfd;
 
 	ret = copy_from_user(&commit, argp, sizeof(struct mdp_layer_commit));
 	if (ret) {
 		pr_err("%s:copy_from_user failed\n", __func__);
 		return ret;
-	}
-
-	mfd = (struct msm_fb_data_type *)info->par;
-	if (!mfd)
-		return -EINVAL;
-
-	if (mfd->panel_info->panel_dead) {
-		pr_debug("early commit return\n");
-		MDSS_XLOG(mfd->panel_info->panel_dead);
-		return 0;
 	}
 
 	output_layer_user = commit.commit_v1.output_layer;
@@ -4870,15 +4851,6 @@ static int __ioctl_wait_idle(struct msm_fb_data_type *mfd, u32 cmd)
 	return ret;
 }
 
-static bool check_not_supported_ioctl(u32 cmd)
-{
-	return((cmd == MSMFB_OVERLAY_SET) || (cmd == MSMFB_OVERLAY_UNSET) ||
-		(cmd == MSMFB_OVERLAY_GET) || (cmd == MSMFB_OVERLAY_PREPARE) ||
-		(cmd == MSMFB_DISPLAY_COMMIT) || (cmd == MSMFB_OVERLAY_PLAY) ||
-		(cmd == MSMFB_BUFFER_SYNC) || (cmd == MSMFB_OVERLAY_QUEUE) ||
-		(cmd == MSMFB_NOTIFY_UPDATE));
-}
-
 /*
  * mdss_fb_do_ioctl() - MDSS Framebuffer ioctl function
  * @info:	pointer to framebuffer info
@@ -4912,11 +4884,6 @@ int mdss_fb_do_ioctl(struct fb_info *info, unsigned int cmd,
 	pdata = dev_get_platdata(&mfd->pdev->dev);
 	if (!pdata || pdata->panel_info.dynamic_switch_pending)
 		return -EPERM;
-
-	if (check_not_supported_ioctl(cmd)) {
-		pr_err("Unsupported ioctl\n");
-		return -EINVAL;
-	}
 
 	atomic_inc(&mfd->ioctl_ref_cnt);
 
