@@ -897,6 +897,7 @@ sg_ioctl(struct file *filp, unsigned int cmd_in, unsigned long arg)
 	Sg_fd *sfp;
 	Sg_request *srp;
 	unsigned long iflags;
+	unsigned int ms;
 
 	if ((!(sfp = (Sg_fd *) filp->private_data)) || (!(sdp = sfp->parentdp)))
 		return -ENXIO;
@@ -1113,7 +1114,7 @@ sg_ioctl(struct file *filp, unsigned int cmd_in, unsigned long arg)
 					rinfo[val].orphan = srp->orphan;
 					rinfo[val].sg_io_owned =
 							srp->sg_io_owned;
-®					rinfo[val].pack_id =
+					rinfo[val].pack_id =
 							srp->header.pack_id;
 					rinfo[val].usr_ptr =
 							srp->header.usr_ptr;
